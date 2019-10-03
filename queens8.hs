@@ -3,7 +3,7 @@ import System.Random
 import Data.Char
 import Debug.Trace
 import Data.List
-
+import Control.Monad
 
 type Board a        = ((a -> a -> Bool) -> Bool)
 
@@ -36,10 +36,10 @@ gogoUp x1 y1 x2 y2  = x1==x2 && y1==y2 || gogoUp (x1+1) (y1+1) x2 y2
 
 
 
-makeQueensList      :: [(Int, Int)]
-makeQueensList      = zip (randomRs (1,8) $ mkStdGen 18) (randomRs (1,8) $ mkStdGen 28)
---makeQueensList    = [(x, y) | x<-[1..8], y<-[1..8]]
---shflQL (q:ql)     = ql ++ [q]
+makeQueensList    :: [(Int, Int)]
+--makeQueensList  = zip (randomRs (1,8) $ mkStdGen 18) (randomRs (1,8) $ mkStdGen 28)
+makeQueensList    = [(x, y) | x<-[1..8], y<-[1..8]]
+shflQL (q:ql)     = ql ++ [q]
 
 
 findQueens1 [] _    =   [] 
@@ -49,20 +49,29 @@ findQueens1 ql ub   =   let (x,y): qln = ql
                             then (x, y) : findQueens1 ql ubn
                             else findQueens1 qln ub
 
-findQueens2 ql t    =  let tm = findQueens1 (take 64 ql) $ makeUB t
-                       in if (length $ trace ("-> "++show tm) tm) < 8
-                                then findQueens2 (drop 64 ql) []
-                                else tm
-
-findQueens = findQueens2 makeQueensList []
 
 
-mapToLetters = map $ \(x,y) ->(chr(ord 'A' + x - 1), y) 
+--findQueens2 ql t  |  trace ("TRACE IS ==>> " ++ show t) False = undefined
+findQueens2 ql t r  =  let tm = t ++ (findQueens1 ql $ makeUB t)
+                         in if length tm < 8 || (elem tm r)
+                                then findQueens2 (shflQL ql) (tail . init $ tm) r
+                                else if length r < 92 
+                                    then findQueens2 makeQueensList [] (tm : r) 
+                                    else r
+
+
+findQueens          = findQueens2 makeQueensList [] []
+
+mapToLetters        = liftM (map $ \(x,y) ->(chr(ord 'A' + x - 1), y)) 
+
+printQL :: (Show a) => [a] -> IO ()
+printQL []          = print "End!"
+printQL (x:xs)      = print x >> printQL xs  
 
 
 
 main = do
     print "Searching.."
-    let r = findQueens
-    print $ mapToLetters r  
+    printQL . mapToLetters $ findQueens  
+    
 
