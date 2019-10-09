@@ -1,0 +1,53 @@
+cabal-version:       3.0
+
+name:                queens8
+
+version:             1.0
+
+license:             GPL-2.0-only
+
+author:              polina
+
+category:            Graphics
+
+
+
+
+
+library  
+  
+    exposed-modules: FndQueens
+
+    hs-source-dirs:  lib
+
+    build-depends: base >=4.7 && <5
+                 , random
+                 , containers
+
+    default-language: Haskell2010
+
+
+
+
+executable queens8
+  main-is:             Main.hs
+
+  build-depends: base ^>=4.12.0.0
+               , haskell-gi-base
+               , gi-gtk
+               , gi-gtk-hs
+               , text
+               , random
+               , mtl
+               , containers
+               , directory
+               , filepath
+               , queens8
+
+  ghc-options: "-O2" 
+               "-threaded"
+               "-with-rtsopts=-N6"
+               
+  default-language:    Haskell2010
+
+
