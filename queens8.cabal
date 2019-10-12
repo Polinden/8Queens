@@ -23,6 +23,7 @@ library
     build-depends: base >=4.7 && <5
                  , random
                  , containers
+                 , stm
 
     default-language: Haskell2010
 
@@ -42,6 +43,7 @@ executable queens8
                , containers
                , directory
                , filepath
+               , stm
                , queens8
 
   ghc-options: "-O2" 

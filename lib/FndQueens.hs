@@ -6,12 +6,16 @@ import Data.Char
 import Debug.Trace
 import Data.List
 import Control.Monad
-import Control.Concurrent
 import qualified Data.Set as Set
+import Control.Concurrent.STM
+import Control.Concurrent
+
+
 
 
 
 type Board a        = ((a -> a -> Bool) -> Bool)
+
 
 usedboard           :: (Num a, Ord a, Eq a) => a -> a -> Board a -> Board a
 usedboard x y b     = \k -> k x y || b (\x2 y2 -> ikillYouQueen x y x2 y2 || k x2 y2)
@@ -41,8 +45,9 @@ gogoUp x1 y1 x2 y2  = x1==x2 && y1==y2 || gogoUp (x1+1) (y1+1) x2 y2
 
 
 
-makeQueensList      :: [(Int, Int)]
-makeQueensList      = zip (randomRs (1,8) $ mkStdGen 81) (randomRs (1,8) $ mkStdGen 18)
+
+makeSearchList      :: [(Int, Int)]
+makeSearchList      = zip (randomRs (1,8) $ mkStdGen 81) (randomRs (1,8) $ mkStdGen 18)
 
 
 findQueens1 [] _    =   [] 
@@ -53,35 +58,44 @@ findQueens1 ql ub   =   let (x,y): qln = ql
                             else findQueens1 qln ub
 
 
+findQueens2 shared ql fl dr = do 
+                        s <- mReadSet
+                        if length mFindQueenL >= 8 && not (mCheckMember s)
+                           then do
+                                mSetUpdate s
+                                findQueens2 shared (drop dr makeSearchList) [] dr 
+                           else findQueens2 shared (drop 64 ql) (init. tail $ mFindQueenL) dr 
 
---findQueens2 ql t s |  trace ("TRACE IS ==>> " ++ show r) False = undefined
-findQueens2 ql t s f  
-                     | f >= 92 = s
-                     | otherwise = 
-                           let tm = t ++ (findQueens1 (take 64 ql) $ makeUB t)
-                           in if length tm >= 8 && not (mSM tm s)
-                                 then findQueens2 makeQueensList [] (mSI tm s) (f + 1)
-                                 else findQueens2 (drop 64 ql) (init. tail $ tm) s f
-                              where mSI  = Set.insert . Set.fromList
-                                    mSM  = Set.member . Set.fromList
-                                                   
-                                                   
-
-fqHelper            =  findQueens2 makeQueensList [] Set.empty 0
-findQueens          =  foldMap (\x-> [Set.toList x]) fqHelper  
+                        where  mSetInsert    = Set.insert . Set.fromList
+                               mCheckMember  = Set.member . Set.fromList $ mFindQueenL
+                               mSetUnion     = (flip Set.union) . (mSetInsert mFindQueenL) 
+                               mReadSet      = atomically $ readTVar shared
+                               mFindQueenL   = findQueens1 (take 64 ql) (makeUB fl) ++ fl  
+                               mSetUpdate    = atomically . (modifyTVar shared) . mSetUnion
 
 
-
---mapToLetters      = liftM (map $ \(x,y) ->(chr(ord 'A' + x - 1), y)) 
-
---printQL :: (Show a) => [a] -> IO ()
---printQL []        = print "End!"
---printQL (x:xs)    = print x >> printQL xs  
+fqhelper 0 _ _ =  []
+fqhelper th dr sh =  (findQueens2 sh makeSearchList [] dr) : fqhelper (th-1) (dr+111) sh
 
 
+fqWorker  = do 
+               let thdCount = 6
+               shared <- atomically $ newTVar Set.empty
+               t  <- mapM forkIO $ fqhelper thdCount 0 shared 
+               forkIO $ 5000 `timesDo` (do 
+                                      milliSleep 100
+                                      s <- atomically $ readTVar shared
+                                      when (length s >= 92) $ mapM  killThread t >>  myThreadId >>=killThread)
+               return shared
+                     
+               where timesDo = replicateM_
+                     milliSleep = threadDelay . (*) 1000
+           
 
---main = do
---    print "Searching.."
---    printQL . mapToLetters $ findQueens  
+findQueens          :: Set.Set (Set.Set (a, a)) -> [[(a,a)]] 
+findQueens          =  foldMap (\x-> [Set.toList x])
+
+
+
     
 

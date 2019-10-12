@@ -17,11 +17,13 @@ import System.Environment
 import Data.Map.Strict as M hiding (map, null)
 import Data.Text (pack) 
 import Control.Concurrent
+import Control.Concurrent.STM
 import Data.Maybe (fromJust)
 import Data.GI.Base.ManagedPtr
 import Data.GI.Base
 import GI.Gtk.Objects as GIO
 import qualified GI.Gtk as Gtk (main, init)
+import Control.Monad.STM
 import Data.GI.Gtk.Threading
 import GI.Gtk
         (widgetShowAll, mainQuit, onWidgetDestroy, onButtonClicked, Button(..),
@@ -69,27 +71,37 @@ main = do
   mapM_           imageClear $ elems mapOfImg
 
 
+
   listRef      <- newIORef [] 
+  cntRef       <- newIORef 90
   forkIO $ do
        postGUIASync $ buttonSetLabel button "Wait..."
-       let (ls, qs) = runState queenState findQueens
+       a <-fqWorker
+       fq<-atomically $ do 
+           fqq<-readTVar a
+           check (length fqq >=92)
+           return $ findQueens fqq
+       let (ls, qs) = runState queenState fq 
        ls `seq` writeIORef  listRef qs
        postGUIASync $ applyMapLQ mapOfImg ls picName
-       postGUIASync $ buttonSetLabel button "Next"
+       postGUIASync $ buttonSetLabel button "Next 91"
 
 
 
   --handler BUTTON "NEXT"
-  onButtonClicked button $ do
-        qqs            <- readIORef listRef
-        let (lss, qss) =  runState queenState qqs
-        writeIORef        listRef qss
-        if null lss 
-           then postGUIASync $ buttonSetLabel button "That is all!"
-           else do 
-             postGUIASync      $ mapM_ imageClear (elems mapOfImg)
-             postGUIASync      $ applyMapLQ mapOfImg lss picName
-
+  onButtonClicked button $ readIORef cntRef >>= (\cnt ->
+            if cnt < 0 
+                then do
+                    buttonSetLabel button "That is all!"
+                    writeIORef cntRef $ -1
+                else do 
+                    qqs            <- readIORef listRef
+                    let (lss, qss) =  runState queenState qqs
+                    writeIORef        listRef qss
+                    mapM_             imageClear (elems mapOfImg)
+                    buttonSetLabel    button $ pack ("Next " ++ show cnt)
+                    applyMapLQ        mapOfImg lss picName
+                    writeIORef cntRef $ cnt-1)
 
 
 
