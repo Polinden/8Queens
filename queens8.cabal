@@ -1,4 +1,4 @@
-cabal-version:       3.0
+cabal-version:       2.4
 
 name:                queens8
 
@@ -10,30 +10,18 @@ author:              polina
 
 category:            Graphics
 
-
-
-
-
-library  
-  
-    exposed-modules: FndQueens
-
-    hs-source-dirs:  lib
-
-    build-depends: base >=4.7 && <5
-                 , random
-                 , containers
-                 , stm
-
-    default-language: Haskell2010
-
+data-files:          *.glade
 
 
 
 executable queens8
-  main-is:             Main.hs
+  main-is:         Main.hs
 
-  build-depends: base ^>=4.12.0.0
+  hs-source-dirs:  . 
+                ,  lib
+
+
+  build-depends: base >=4.12
                , haskell-gi-base
                , gi-gtk
                , gi-gtk-hs
@@ -42,14 +30,22 @@ executable queens8
                , mtl
                , containers
                , directory
-               , filepath
+               , filepath ==1.4.2.1
+               , paths >=0.2
                , stm
-               , queens8
+               , Cabal
+
+  
+  other-modules: FndQueens
+
 
   ghc-options: "-O2" 
                "-threaded"
                "-with-rtsopts=-N6"
                
+
   default-language:    Haskell2010
+
+
 
 

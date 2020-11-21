@@ -12,7 +12,7 @@ import Data.IORef
 import Data.List hiding (lookup)
 import Data.String
 import System.Directory
-import System.FilePath
+import System.FilePath.Posix
 import System.Environment
 import Data.Map.Strict as M hiding (map, null)
 import Data.Text (pack) 
@@ -25,6 +25,7 @@ import GI.Gtk.Objects as GIO
 import qualified GI.Gtk as Gtk (main, init)
 import Control.Monad.STM
 import Data.GI.Gtk.Threading
+import Paths_queens8
 import GI.Gtk
         (widgetShowAll, mainQuit, onWidgetDestroy, onButtonClicked, Button(..),
         Window(..), builderGetObject, builderAddFromFile, builderNew, Fixed, ButtonsType(..), MessageDialog, dialogRun)
@@ -58,7 +59,8 @@ main = do
 
   Gtk.init        Nothing
   builder     <-  builderNew
-  builderAddFromFile builder $ gladeNm
+  st<-getDataFileName "queens.glade"
+  builderAddFromFile builder $ gladeNm -- (pack st)
   mainWindow  <-  builderGetObject builder "mainWindow" >>= unsafeCastTo Window . fromJust
   button      <-  builderGetObject builder "nextb" >>= unsafeCastTo Button . fromJust
 
